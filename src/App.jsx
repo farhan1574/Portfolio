@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, Component } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import Navbar from './components/ui/Navbar';
 import LoadingScreen from './components/ui/LoadingScreen';
@@ -12,6 +12,30 @@ import TerminalModal from './components/modals/TerminalModal';
 import CertificatesModal from './components/modals/CertificatesModal';
 import ContactModal from './components/modals/ContactModal';
 import { portfolioData } from './data/portfolioData';
+
+// Error Boundary for WebGL/Canvas safety
+class CanvasErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn("3D Canvas Error caught, falling back to 2D view:", error, errorInfo);
+    this.props.onFallback?.();
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,25 +111,41 @@ export default function App() {
       {/* 3. Main Viewport: 3D Isometric Room OR 2D Recruiter View */}
       <main className="w-full h-full relative">
         {viewMode === '3d' ? (
-          <div className="w-full h-full">
-            <RoomCanvas
-              lightingTheme={lightingTheme}
-              activeModal={activeModal}
-              onSelectHotspot={openModal}
-              hoveredHotspot={hoveredHotspot}
-              setHoveredHotspot={setHoveredHotspot}
-              cameraTarget={cameraTarget}
-              cameraPosition={cameraPosition}
-              orbitControlsRef={orbitControlsRef}
-            />
+          <CanvasErrorBoundary
+            onFallback={() => {
+              setViewMode('2d');
+              showToast('WebGL not supported on this device, switched to 2D Resume View', 'info');
+            }}
+            fallback={
+              <div className="w-full h-full overflow-y-auto">
+                <RecruiterView
+                  setViewMode={setViewMode}
+                  onPrintResume={handlePrintResume}
+                  showToast={showToast}
+                />
+              </div>
+            }
+          >
+            <div className="w-full h-full">
+              <RoomCanvas
+                lightingTheme={lightingTheme}
+                activeModal={activeModal}
+                onSelectHotspot={openModal}
+                hoveredHotspot={hoveredHotspot}
+                setHoveredHotspot={setHoveredHotspot}
+                cameraTarget={cameraTarget}
+                cameraPosition={cameraPosition}
+                orbitControlsRef={orbitControlsRef}
+              />
 
-            {/* Floating Room Controls & Interaction Hints */}
-            <RoomControls
-              onResetCamera={resetCamera}
-              lightingTheme={lightingTheme}
-              activeModal={activeModal}
-            />
-          </div>
+              {/* Floating Room Controls & Interaction Hints */}
+              <RoomControls
+                onResetCamera={resetCamera}
+                lightingTheme={lightingTheme}
+                activeModal={activeModal}
+              />
+            </div>
+          </CanvasErrorBoundary>
         ) : (
           <div className="w-full h-full overflow-y-auto">
             <RecruiterView

@@ -4,7 +4,8 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Crucial for GitHub Pages relative asset paths
+  // GitHub Pages base URL for repo: https://github.com/farhan1574/Portfolio
+  base: '/Portfolio/',
   server: {
     host: true,
     port: 3000,
